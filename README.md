@@ -17,6 +17,9 @@ warm spotlight.
 hero image from `assets/` to `$MAKEFUN_OUTPUT_DIR/entry.png` — exactly
 1024×1024 pixels, at most 1 MiB — and prints its size and dimensions.
 
+`assets/dish.png` is the single asset the entry ships; there is no
+fallback image.
+
 ## Output validation
 
 Before finishing, `main.py` verifies its own output and fails loudly

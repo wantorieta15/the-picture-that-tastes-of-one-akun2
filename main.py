@@ -30,16 +30,11 @@ import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
-# Preferred asset: a compressed 1024x1024 PNG (<= 1 MiB), produced from
-# the generated render. Fallback: the original generated PNG.
-# Keeping the shipped file small matters twice: the scorer rejects
-# anything over 1 MiB, and on an exact rate tie the smaller image wins.
+# The single shipped asset: a compressed 1024x1024 PNG (<= 1 MiB),
+# produced from the generated render. Keeping the shipped file small
+# matters twice: the scorer rejects anything over 1 MiB, and on an
+# exact rate tie the smaller image wins.
 ASSET_PNG = os.path.join(_HERE, "assets", "dish.png")
-ASSET_ORIGINAL = os.path.join(
-    _HERE,
-    "assets",
-    "media-generation-sate-ayam-0-400765de-c61b-44f4-94e0-699231cb1e17.png",
-)
 MAX_BYTES = 1_048_576
 
 # Official PNG file signature (ISO/IEC 15948): 137 80 78 71 13 10 26 10.
@@ -79,7 +74,7 @@ def _png_dimensions(path):
     """Read width/height from a PNG header (stdlib only)."""
     with open(path, "rb") as f:
         header = f.read(33)
-    if len(header) < 33 or header[:8] != b"\x89PNG\r\n\x1a\n":
+    if len(header) < 33 or header[:8] != PNG_SIGNATURE:
         return None
     width = int.from_bytes(header[16:20], "big")
     height = int.from_bytes(header[20:24], "big")
@@ -89,7 +84,7 @@ def _png_dimensions(path):
 def main():
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
     os.makedirs(out_dir, exist_ok=True)
-    src = ASSET_PNG if os.path.exists(ASSET_PNG) else ASSET_ORIGINAL
+    src = ASSET_PNG
     if not os.path.exists(src):
         raise SystemExit("ERROR: source image missing: %s" % src)
     dst = os.path.join(out_dir, "entry.png")
@@ -112,6 +107,7 @@ def main():
     if src_hash != dst_hash:
         raise SystemExit("ERROR: entry.png hash does not match source")
     print("output: %s" % os.path.abspath(dst))
+    print("source: %s" % os.path.abspath(src))
     print("wrote %s (%d bytes) from %s" % (dst, size, os.path.basename(src)))
     print("dimensions: %dx%d" % dims)
     print("sha256: %s (matches source)" % dst_hash[:16])
