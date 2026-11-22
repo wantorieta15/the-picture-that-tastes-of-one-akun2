@@ -23,6 +23,7 @@ No network is used; the program only copies a local asset file.
 Only the Python standard library is used.
 """
 
+import hashlib
 import os
 import shutil
 import sys
@@ -42,6 +43,18 @@ ASSET_ORIGINAL = os.path.join(
 MAX_BYTES = 1_048_576
 
 
+def _sha256(path):
+    """SHA-256 of a file (stdlib only), read in chunks."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(65536)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _png_dimensions(path):
     """Read width/height from a PNG header (stdlib only)."""
     with open(path, "rb") as f:
@@ -57,20 +70,30 @@ def main():
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
     os.makedirs(out_dir, exist_ok=True)
     src = ASSET_PNG if os.path.exists(ASSET_PNG) else ASSET_ORIGINAL
+    if not os.path.exists(src):
+        raise SystemExit("ERROR: source image missing: %s" % src)
     dst = os.path.join(out_dir, "entry.png")
     shutil.copyfile(src, dst)
     size = os.path.getsize(dst)
     dims = _png_dimensions(dst)
-    print("wrote %s (%d bytes) from %s" % (dst, size, os.path.basename(src)))
-    if dims is not None:
-        print("dimensions: %dx%d" % dims)
-        if dims != (1024, 1024):
-            print("WARNING: entry.png is not 1024x1024", file=sys.stderr)
-    if size > MAX_BYTES:
-        print(
-            "WARNING: entry.png is %d bytes, over the 1 MiB limit" % size,
-            file=sys.stderr,
+    if dims is None:
+        raise SystemExit("ERROR: entry.png is not a readable PNG")
+    if dims != (1024, 1024):
+        raise SystemExit(
+            "ERROR: entry.png is %dx%d, expected 1024x1024" % dims
         )
+    if size > MAX_BYTES:
+        raise SystemExit(
+            "ERROR: entry.png is %d bytes, over the 1 MiB limit" % size
+        )
+    src_hash = _sha256(src)
+    dst_hash = _sha256(dst)
+    if src_hash != dst_hash:
+        raise SystemExit("ERROR: entry.png hash does not match source")
+    print("wrote %s (%d bytes) from %s" % (dst, size, os.path.basename(src)))
+    print("dimensions: %dx%d" % dims)
+    print("sha256: %s (matches source)" % dst_hash[:16])
+    print("verified: 1024x1024, within the 1 MiB cap, byte-identical copy")
     return 0
 
 

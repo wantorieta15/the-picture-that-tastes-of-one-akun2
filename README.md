@@ -17,6 +17,18 @@ warm spotlight.
 hero image from `assets/` to `$MAKEFUN_OUTPUT_DIR/entry.png` — exactly
 1024×1024 pixels, at most 1 MiB — and prints its size and dimensions.
 
+## Output validation
+
+Before finishing, `main.py` verifies its own output and fails loudly
+instead of handing the judge a bad file:
+
+- source image exists, otherwise it exits with an error;
+- output is a readable PNG, exactly 1024×1024, at most 1 MiB;
+- SHA-256 of `entry.png` matches the source file byte-for-byte.
+
+On success it prints the dimensions, byte size and the first 16
+hex characters of the matching SHA-256.
+
 ```sh
 MAKEFUN_OUTPUT_DIR=/tmp/out python3 main.py
 ```
