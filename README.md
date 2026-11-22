@@ -23,6 +23,10 @@ Before finishing, `main.py` verifies its own output and fails loudly
 instead of handing the judge a bad file:
 
 - source image exists, otherwise it exits with an error;
+- output starts with the official PNG signature
+  (`89 50 4E 47 0D 0A 1A 0A`), checked before anything else is read,
+  so a corrupt or mislabelled file fails with its actual first bytes
+  named in the error;
 - output is a readable PNG, exactly 1024×1024, at most 1 MiB;
 - SHA-256 of `entry.png` matches the source file byte-for-byte.
 

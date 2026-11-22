@@ -42,6 +42,26 @@ ASSET_ORIGINAL = os.path.join(
 )
 MAX_BYTES = 1_048_576
 
+# Official PNG file signature (ISO/IEC 15948): 137 80 78 71 13 10 26 10.
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+def _check_png_signature(path):
+    """Fail loudly unless the file starts with the PNG signature.
+
+    This is checked separately from the dimension read so a corrupt or
+    mislabelled file gets a specific error instead of a generic one.
+    """
+    with open(path, "rb") as f:
+        magic = f.read(8)
+    if magic != PNG_SIGNATURE:
+        raise SystemExit(
+            "ERROR: %s is not a PNG file: first 8 bytes are %s, "
+            "expected PNG signature 89 50 4e 47 0d 0a 1a 0a"
+            % (path, magic.hex() if magic else "(empty file)")
+        )
+    return True
+
 
 def _sha256(path):
     """SHA-256 of a file (stdlib only), read in chunks."""
@@ -74,6 +94,7 @@ def main():
         raise SystemExit("ERROR: source image missing: %s" % src)
     dst = os.path.join(out_dir, "entry.png")
     shutil.copyfile(src, dst)
+    _check_png_signature(dst)
     size = os.path.getsize(dst)
     dims = _png_dimensions(dst)
     if dims is None:
@@ -90,6 +111,7 @@ def main():
     dst_hash = _sha256(dst)
     if src_hash != dst_hash:
         raise SystemExit("ERROR: entry.png hash does not match source")
+    print("output: %s" % os.path.abspath(dst))
     print("wrote %s (%d bytes) from %s" % (dst, size, os.path.basename(src)))
     print("dimensions: %dx%d" % dims)
     print("sha256: %s (matches source)" % dst_hash[:16])
